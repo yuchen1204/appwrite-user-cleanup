@@ -1,4 +1,4 @@
-// 完整的用户资源清理功能 - 文件和文档清理 (修正目标用户ID)
+// 完整的用户资源清理功能 - 文件和文档清理 (再次修正目标用户ID)
 module.exports = async function(req, res) {
   const sdk = require('node-appwrite');
   
@@ -19,10 +19,9 @@ module.exports = async function(req, res) {
   const databaseId = process.env.APPWRITE_DATABASE_ID;
   const usersCollectionId = process.env.APPWRITE_USERS_COLLECTION_ID;
   
-  // 修正目标用户ID为日志中实际存在的资源所有者ID
-  let targetUserId = '683c4ddd1e67eededdd9'; 
+  // 再次修正目标用户ID为当前日志中文件的实际所有者ID
+  let targetUserId = '683c4fa7633484b18c81'; 
   
-  // 记录所有环境变量，帮助调试
   console.log('环境变量:');
   console.log('APPWRITE_ENDPOINT:', process.env.APPWRITE_ENDPOINT || '未设置');
   console.log('APPWRITE_FUNCTION_PROJECT_ID:', process.env.APPWRITE_FUNCTION_PROJECT_ID || '未设置');
@@ -30,9 +29,8 @@ module.exports = async function(req, res) {
   console.log('APPWRITE_DATABASE_ID:', databaseId || '未设置');
   console.log('APPWRITE_USERS_COLLECTION_ID:', usersCollectionId || '未设置');
   
-  console.log('目标用户ID:', targetUserId);
+  console.log('目标用户ID (修正后):', targetUserId);
   
-  // 记录结果
   let result = {
     userDeletedViaAPI: false,
     filesDeleted: 0,
@@ -56,27 +54,27 @@ module.exports = async function(req, res) {
     if (databaseId && usersCollectionId) {
       try {
         console.log(`尝试在数据库 ${databaseId} 的集合 ${usersCollectionId} 中删除用户文档...`);
-        
-        // 直接尝试删除ID为targetUserId的文档
+        // 尝试直接删除ID为targetUserId的文档
         await databases.deleteDocument(databaseId, usersCollectionId, targetUserId);
         console.log(`成功从集合中删除用户文档: ${targetUserId}`);
         result.documentsDeleted++;
       } catch (dbDeleteError) {
-        console.log(`从集合中删除用户文档 ${targetUserId} 失败: ${dbDeleteError.message}`);
-        result.errors.push(`数据库删除文档错误: ${dbDeleteError.message}`);
+        console.log(`从集合中删除目标用户文档 ${targetUserId} 失败: ${dbDeleteError.message}`);
+        result.errors.push(`数据库删除目标文档错误: ${dbDeleteError.message}`);
         
-        // 如果直接删除失败，尝试列出并按ID或创建者筛选删除 (作为备用方案)
-        console.log('尝试列出文档并按ID或创建者筛选删除...');
+        console.log('尝试列出并按ID或创建者筛选删除集合中剩余的文档...');
         try {
             const allDocs = await databases.listDocuments(databaseId, usersCollectionId);
             console.log(`数据库中共有 ${allDocs.total} 个文档`);
             for (const doc of allDocs.documents) {
-              // 如果文档ID是目标用户ID，或者文档有一个userId字段等于目标ID
+              console.log(`检查文档: ID=${doc.$id}, 创建者=${doc.$createdBy}, 内容=${JSON.stringify(doc)}`);
+              // 如果文档ID是目标用户ID，或者文档有一个userId字段等于目标ID，或者创建者是目标用户ID
               if (doc.$id === targetUserId || doc.userId === targetUserId || doc.$createdBy === targetUserId) {
                 try {
                   await databases.deleteDocument(databaseId, usersCollectionId, doc.$id);
                   console.log(`(备用方案)成功删除用户文档: ${doc.$id}`);
-                  result.documentsDeleted++; // 避免重复计数，如果主方法失败才计数
+                  // 只有在主删除方法失败且这是第一次删除时才增加计数器
+                  if (result.documentsDeleted === 0) result.documentsDeleted++; 
                 } catch (secondaryDeleteError) {
                   console.log(`(备用方案)删除文档 ${doc.$id} 失败: ${secondaryDeleteError.message}`);
                   result.errors.push(`(备用方案)删除文档错误: ${secondaryDeleteError.message}`);
