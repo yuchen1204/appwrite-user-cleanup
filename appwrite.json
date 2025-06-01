@@ -1,0 +1,24 @@
+{
+  "projectId": "your-project-id",
+  "projectName": "用户资源清理",
+  "functions": [
+    {
+      "$id": "user-cleanup",
+      "name": "用户资源清理",
+      "runtime": "node-18.0",
+      "execute": [],
+      "events": ["users.delete"],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/index.js",
+      "commands": "npm install",
+      "ignore": [
+        "node_modules",
+        ".npm"
+      ],
+      "path": "src/index.js"
+    }
+  ]
+}
