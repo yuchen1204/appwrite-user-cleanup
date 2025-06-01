@@ -13,9 +13,8 @@
       "enabled": true,
       "logging": true,
       "entrypoint": "src/index.js",
-      "commands": "npm install",
+      "commands": "npm install --production",
       "ignore": [
-        "node_modules",
         ".npm"
       ],
       "path": "src/index.js"
